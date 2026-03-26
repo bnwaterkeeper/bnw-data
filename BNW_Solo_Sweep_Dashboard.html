@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solo Sweep Dashboard — Buffalo Niagara Waterkeeper</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --dark-blue: #003a5d;
+    --waterkeeper-blue: #005baa;
+    --leaf-green: #759a35;
+    --grasslands: #c0ea57;
+    --sunset-orange: #f37321;
+    --light-blue: #7aa4dd;
+    --steel: #a3a3a3;
+    --white: #ffffff;
+    --off-white: #f0f5fa;
+    --panel: rgba(255,255,255,0.06);
+    --panel-border: rgba(255,255,255,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--dark-blue);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 20%, rgba(0,91,170,0.25) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 80%, rgba(117,154,53,0.12) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 48px 0 36px;
+    border-bottom: 1px solid var(--panel-border);
+    margin-bottom: 40px;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .brand-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .brand-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--grasslands);
+    flex-shrink: 0;
+  }
+
+  .brand-name {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--grasslands);
+  }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--white);
+  }
+
+  h1 span {
+    color: var(--grasslands);
+  }
+
+  .header-meta {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .date-badge {
+    display: inline-block;
+    background: rgba(117,154,53,0.18);
+    border: 1px solid rgba(192,234,87,0.3);
+    color: var(--grasslands);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 10px;
+  }
+
+  .header-sub {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--steel);
+    line-height: 1.5;
+    max-width: 280px;
+  }
+
+  /* ── STAT CARDS ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 700px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .header-meta { text-align: left; }
+    .header-inner { flex-direction: column; }
+  }
+
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 22px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+
+  .stat-card:hover {
+    border-color: rgba(192,234,87,0.35);
+    transform: translateY(-2px);
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 3px;
+    background: var(--accent, var(--grasslands));
+    opacity: 0.7;
+  }
+
+  .stat-card.orange { --accent: var(--sunset-orange); }
+  .stat-card.blue   { --accent: var(--light-blue); }
+  .stat-card.steel  { --accent: var(--steel); }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--steel);
+    margin-bottom: 10px;
+  }
+
+  .stat-number {
+    font-size: clamp(28px, 4vw, 38px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--white);
+  }
+
+  .stat-number sup {
+    font-size: 0.45em;
+    font-weight: 600;
+    vertical-align: super;
+    color: var(--steel);
+    letter-spacing: 0;
+  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--steel);
+    margin-top: 6px;
+    font-weight: 400;
+  }
+
+  /* ── CHARTS GRID ── */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .charts-grid .full-width {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 700px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .charts-grid .full-width { grid-column: auto; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 28px;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--steel);
+    margin-bottom: 6px;
+  }
+
+  .panel-headline {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 24px;
+    letter-spacing: -0.01em;
+  }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  /* ── COUNTY COMPARISON ── */
+  .county-compare {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .county-box {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .county-box:hover { border-color: rgba(192,234,87,0.3); }
+
+  .county-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--col, var(--grasslands));
+  }
+
+  .county-box.orange-top { --col: var(--sunset-orange); }
+
+  .county-name {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--steel);
+    margin-bottom: 14px;
+  }
+
+  .county-stat { margin-bottom: 10px; }
+  .county-stat-n {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--white);
+  }
+  .county-stat-l {
+    font-size: 11px;
+    color: var(--steel);
+    font-weight: 400;
+  }
+
+  /* ── TOP LITTER TABLE ── */
+  .litter-list {
+    list-style: none;
+  }
+
+  .litter-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .litter-item:last-child { border-bottom: none; }
+
+  .litter-rank {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--steel);
+    width: 18px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .litter-bar-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  .litter-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .litter-bar-bg {
+    height: 5px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .litter-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--fill-color, var(--grasslands));
+    transition: width 1s ease;
+  }
+
+  .litter-count {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+    flex-shrink: 0;
+    width: 48px;
+    text-align: right;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 48px;
+    padding: 28px 0 40px;
+    border-top: 1px solid var(--panel-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer-left {
+    font-size: 11px;
+    color: var(--steel);
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  .footer-left a {
+    color: var(--light-blue);
+    text-decoration: none;
+  }
+
+  .footer-right {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--steel);
+    font-weight: 600;
+  }
+
+  /* Animate in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .stat-card, .panel, .county-box {
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.10s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.20s; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <div>
+        <div class="brand-bar">
+          <div class="brand-dot"></div>
+          <span class="brand-name">Buffalo Niagara Waterkeeper · Solo Sweep</span>
+        </div>
+        <h1>Western New York<br><span>Litter Report</span></h1>
+      </div>
+      <div class="header-meta">
+        <div class="date-badge">Jan – Mar 2026</div>
+        <p class="header-sub">Erie &amp; Niagara County cleanup data from TIDES / Clean Swell app</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- IMPACT STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Items Removed</div>
+      <div class="stat-number">1,592</div>
+      <div class="stat-sub">pieces of litter collected</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Weight Collected</div>
+      <div class="stat-number">128<sup>lbs</sup></div>
+      <div class="stat-sub">across all cleanups</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Cleanups Logged</div>
+      <div class="stat-number">29</div>
+      <div class="stat-sub">individual Solo Sweeps</div>
+    </div>
+    <div class="stat-card steel">
+      <div class="stat-label">Participants</div>
+      <div class="stat-number">49</div>
+      <div class="stat-sub">people out cleaning</div>
+    </div>
+  </div>
+
+  <!-- COUNTY COMPARISON -->
+  <div class="county-compare">
+    <div class="county-box">
+      <div class="county-name">Erie County</div>
+      <div class="county-stat">
+        <div class="county-stat-n">1,111</div>
+        <div class="county-stat-l">items collected</div>
+      </div>
+      <div class="county-stat">
+        <div class="county-stat-n">23</div>
+        <div class="county-stat-l">cleanups · 97 lbs</div>
+      </div>
+    </div>
+    <div class="county-box orange-top">
+      <div class="county-name">Niagara County</div>
+      <div class="county-stat">
+        <div class="county-stat-n">481</div>
+        <div class="county-stat-l">items collected</div>
+      </div>
+      <div class="county-stat">
+        <div class="county-stat-n">6</div>
+        <div class="county-stat-l">cleanups · 31 lbs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS GRID -->
+  <div class="charts-grid">
+
+    <!-- Top Litter Categories -->
+    <div class="panel full-width">
+      <div class="panel-title">By Category</div>
+      <div class="panel-headline">What We're Finding</div>
+      <ul class="litter-list" id="litterList"></ul>
+    </div>
+
+    <!-- Monthly Chart -->
+    <div class="panel">
+      <div class="panel-title">By Month</div>
+      <div class="panel-headline">Cleanup Activity</div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="monthChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Composition Donut -->
+    <div class="panel">
+      <div class="panel-title">Litter Mix</div>
+      <div class="panel-headline">Top 5 Breakdown</div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="donutChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="footer-left">
+      Data source: <a href="https://www.coastalcleanupdata.org/" target="_blank">TIDES</a> (Ocean Conservancy) · Erie &amp; Niagara County, NY · Jan–Mar 2026<br>
+      <a href="https://bnwaterkeeper.org/solosweep/" target="_blank">Join a Solo Sweep →</a>
+    </div>
+    <div class="footer-right">bnwaterkeeper.org</div>
+  </footer>
+
+</div>
+
+<script>
+// ── DATA ──
+const litterData = [
+  { name: "Beverage cans",              count: 642, color: "#759a35" },
+  { name: "Beverage bottles (plastic)", count: 588, color: "#759a35" },
+  { name: "Cigarette butts",            count: 414, color: "#f37321" },
+  { name: "Other waste",                count: 202, color: "#a3a3a3" },
+  { name: "Food wrappers",              count: 154, color: "#7aa4dd" },
+  { name: "Plastic/foam pieces",        count: 128, color: "#7aa4dd" },
+  { name: "Bottle caps (plastic)",      count:  90, color: "#7aa4dd" },
+  { name: "Cups & plates (paper)",      count:  86, color: "#a3a3a3" },
+  { name: "Lids (plastic)",             count:  84, color: "#7aa4dd" },
+  { name: "Grocery bags (plastic)",     count:  80, color: "#7aa4dd" },
+];
+
+const monthData = {
+  labels: ["January", "February", "March"],
+  erie:    [8, 7, 8],
+  niagara: [0, 2, 4],
+};
+
+// ── LITTER LIST ──
+const list = document.getElementById("litterList");
+const max = litterData[0].count;
+litterData.forEach((item, i) => {
+  const pct = Math.round((item.count / max) * 100);
+  list.innerHTML += `
+    <li class="litter-item">
+      <span class="litter-rank">${i+1}</span>
+      <div class="litter-bar-wrap">
+        <div class="litter-name">${item.name}</div>
+        <div class="litter-bar-bg">
+          <div class="litter-bar-fill" style="width:${pct}%; --fill-color:${item.color};"></div>
+        </div>
+      </div>
+      <span class="litter-count">${item.count.toLocaleString()}</span>
+    </li>`;
+});
+
+// ── CHART DEFAULTS ──
+Chart.defaults.color = "#a3a3a3";
+Chart.defaults.font.family = "'Montserrat', sans-serif";
+
+// ── MONTHLY CHART ──
+new Chart(document.getElementById("monthChart"), {
+  type: "bar",
+  data: {
+    labels: monthData.labels,
+    datasets: [
+      {
+        label: "Erie County",
+        data: monthData.erie,
+        backgroundColor: "rgba(117,154,53,0.85)",
+        borderRadius: 4,
+      },
+      {
+        label: "Niagara County",
+        data: monthData.niagara,
+        backgroundColor: "rgba(243,115,33,0.75)",
+        borderRadius: 4,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          font: { size: 11, weight: "600", family: "'Montserrat', sans-serif" },
+          boxWidth: 12,
+          boxHeight: 12,
+          padding: 16,
+        },
+      },
+    },
+    scales: {
+      x: {
+        stacked: true,
+        grid: { display: false },
+        border: { display: false },
+        ticks: { font: { size: 11, family: "'Montserrat', sans-serif" } },
+      },
+      y: {
+        stacked: true,
+        grid: { color: "rgba(255,255,255,0.06)" },
+        border: { display: false },
+        ticks: {
+          stepSize: 5,
+          font: { size: 11, family: "'Montserrat', sans-serif" },
+        },
+      },
+    },
+  },
+});
+
+// ── DONUT CHART ──
+const top5 = litterData.slice(0, 5);
+new Chart(document.getElementById("donutChart"), {
+  type: "doughnut",
+  data: {
+    labels: top5.map(d => d.name),
+    datasets: [{
+      data: top5.map(d => d.count),
+      backgroundColor: [
+        "#759a35",
+        "#c0ea57",
+        "#f37321",
+        "#7aa4dd",
+        "#005baa",
+      ],
+      borderWidth: 2,
+      borderColor: "#003a5d",
+    }],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "65%",
+    plugins: {
+      legend: {
+        position: "right",
+        labels: {
+          font: { size: 10, weight: "500", family: "'Montserrat', sans-serif" },
+          boxWidth: 10,
+          boxHeight: 10,
+          padding: 10,
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.parsed.toLocaleString()} items`
+        }
+      }
+    },
+  },
+});
+</script>
+</body>
+</html>

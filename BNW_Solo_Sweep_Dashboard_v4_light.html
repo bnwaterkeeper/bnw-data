@@ -20,7 +20,7 @@
   --panel:      #ffffff;
   --border:     #e2e8f0;
   --white:      #ffffff;
-  --bg:         #f4f7fa;
+  --bg:         #000000;
   --text:       #003a5d;
   --accent:     #759a35;
 }
@@ -206,7 +206,7 @@ footer{max-width:1120px;margin:0 auto;padding:28px 28px 48px;border-top:1px soli
 <div class="section" id="litter">
   <div class="section-eyebrow">By Category</div>
   <div class="section-title">What We're Finding</div>
-  <p class="section-desc">Combined totals for Erie and Niagara counties across all years. Cigarette butts alone account for <strong style="color:var(--dark-blue)">nearly 18%</strong> of all items collected — a persistent advocacy target.</p>
+  <p class="section-desc">These are the top 10 items collected in Erie and Niagara counties since 2021. Cigarette butts alone account for <strong style="color:var(--dark-blue)">nearly 18%</strong> of all items collected — a persistent advocacy target.</p>
   <div class="panel">
     <ul class="litter-list" id="litterList"></ul>
   </div>
@@ -340,7 +340,7 @@ LITTER.forEach((item, i) => {
         <div class="l-name">${item.label}</div>
         <div class="l-bar-bg"><div class="l-bar-fill" style="width:0%;background:${BAR_COLORS[i]};" data-w="${pct}"></div></div>
       </div>
-      <div class="l-count">${item.count.toLocaleString()}<span class="l-pct">${sharePct}% of total</span></div>
+      <div class="l-count">${item.count.toLocaleString()}</div>
     </li>`;
 });
 

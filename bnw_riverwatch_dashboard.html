@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riverwatch Data Dashboard — Buffalo Niagara Waterkeeper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --dark-blue:    #003a5d;
+    --leaf-green:   #759a35;
+    --sunset-orange:#f37321;
+    --wk-blue:      #005baa;
+    --grasslands:   #c0ea57;
+    --steelhead:    #a3a3a3;
+    --light-blue:   #7aa4dd;
+    --body-color:   #01262b;
+    --bg:           #ffffff;
+    --bg-subtle:    #f5f7fa;
+    --bg-tint:      #eef2f7;
+    --border:       #e0e6ed;
+    --border-strong:#cdd5e0;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--bg);
+    color: var(--body-color);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* HEADER */
+  .site-header {
+    background: var(--dark-blue);
+    padding: 0 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 68px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo-block { display: flex; align-items: center; gap: 14px; }
+  .logo-circle {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--wk-blue);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; color: #fff; letter-spacing: -0.5px;
+    flex-shrink: 0;
+  }
+  .logo-text strong { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #fff; }
+  .logo-text span   { font-size: 10px; font-weight: 500; color: var(--light-blue); text-transform: uppercase; letter-spacing: 0.1em; }
+  .header-badge {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--light-blue); border: 1px solid rgba(122,164,221,0.4); padding: 4px 12px; border-radius: 20px;
+  }
+
+  /* HERO */
+  .hero { background: var(--bg-subtle); border-bottom: 1px solid var(--border); padding: 40px 48px; }
+  .hero-inner { max-width: 1100px; margin: 0 auto; }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--wk-blue); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .eyebrow::before { content: ''; width: 20px; height: 2px; background: var(--wk-blue); }
+  .hero h1 { font-size: clamp(24px,3.5vw,38px); font-weight: 800; line-height: 1.15; color: var(--dark-blue); letter-spacing: -0.5px; margin-bottom: 12px; }
+  .hero h1 em { font-style: normal; color: var(--wk-blue); }
+  .hero p { font-size: 14px; color: #4a5568; max-width: 620px; line-height: 1.75; margin-bottom: 32px; }
+  .stat-row {
+    display: flex; flex-wrap: wrap; border: 1px solid var(--border-strong);
+    border-radius: 10px; overflow: hidden; background: var(--bg); max-width: 640px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .stat-item { flex: 1; min-width: 120px; padding: 16px 20px; border-right: 1px solid var(--border); }
+  .stat-item:last-child { border-right: none; }
+  .stat-num { font-size: 26px; font-weight: 900; line-height: 1; color: var(--dark-blue); margin-bottom: 3px; }
+  .stat-num.blue   { color: var(--wk-blue); }
+  .stat-num.green  { color: var(--leaf-green); }
+  .stat-num.orange { color: var(--sunset-orange); }
+  .stat-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--steelhead); }
+
+  /* TAB NAV */
+  .tab-nav {
+    background: var(--bg); border-bottom: 2px solid var(--border);
+    padding: 0 48px; display: flex; overflow-x: auto;
+    position: sticky; top: 68px; z-index: 90;
+  }
+  .tab-btn {
+    background: none; border: none; cursor: pointer;
+    padding: 16px 26px; font-family: 'Montserrat', sans-serif;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em;
+    color: var(--steelhead); border-bottom: 3px solid transparent; margin-bottom: -2px;
+    transition: color 0.18s, border-color 0.18s; white-space: nowrap;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .tab-btn:hover { color: var(--dark-blue); }
+  .tab-btn.active { color: var(--dark-blue); }
+  .tab-btn.habs.active { border-bottom-color: var(--sunset-orange); }
+  .tab-btn.pfas.active { border-bottom-color: var(--wk-blue); }
+  .tab-btn.wqp.active  { border-bottom-color: var(--leaf-green); }
+  .tab-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .habs .tab-dot { background: var(--sunset-orange); }
+  .pfas .tab-dot { background: var(--wk-blue); }
+  .wqp  .tab-dot { background: var(--leaf-green); }
+
+  /* PANELS */
+  .panel { display: none; padding: 40px 48px 72px; max-width: 1180px; margin: 0 auto; }
+  .panel.active { display: block; }
+  .panel-header { margin-bottom: 32px; }
+  .panel-header h2 { font-size: 32px; font-weight: 700; color: var(--dark-blue); letter-spacing: -0.5px; margin-bottom: 8px; line-height: 1.2; }
+  .panel-header h2 .ao { color: var(--sunset-orange); }
+  .panel-header h2 .ab { color: var(--wk-blue); }
+  .panel-header h2 .ag { color: var(--leaf-green); }
+  .panel-header p { font-size: 14px; color: #4a5568; max-width: 720px; line-height: 1.75; }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+  @media (max-width: 820px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .panel, .site-header, .tab-nav, .hero { padding-left: 20px; padding-right: 20px; }
+  }
+
+  /* CARD */
+  .card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 24px 26px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .card-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--steelhead); margin-bottom: 18px; display: flex; align-items: center; gap: 7px; }
+  .ctbar { width: 3px; height: 14px; border-radius: 2px; flex-shrink: 0; }
+  .card canvas { width: 100% !important; }
+  .chart-note { font-size: 11px; color: var(--steelhead); margin-top: 12px; line-height: 1.6; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  /* KPI ROW */
+  .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+  @media (max-width: 900px) { .kpi-row { grid-template-columns: repeat(2,1fr); } }
+  .kpi { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); border-top: 3px solid var(--border); }
+  .kpi.o { border-top-color: var(--sunset-orange); }
+  .kpi.b { border-top-color: var(--wk-blue); }
+  .kpi.g { border-top-color: var(--leaf-green); }
+  .kpi.lb{ border-top-color: var(--light-blue); }
+  .kpi-v { font-size: 30px; font-weight: 900; line-height: 1; color: var(--dark-blue); margin-bottom: 5px; }
+  .kpi.o .kpi-v { color: var(--sunset-orange); }
+  .kpi.b .kpi-v { color: var(--wk-blue); }
+  .kpi.g .kpi-v { color: var(--leaf-green); }
+  .kpi.lb .kpi-v { color: var(--light-blue); }
+  .kpi-l { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--steelhead); margin-bottom: 3px; }
+  .kpi-s { font-size: 11px; color: #718096; }
+
+  /* SECTION DIVIDER */
+  .sdiv { display: flex; align-items: center; gap: 14px; margin: 36px 0 22px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; color: var(--dark-blue); }
+  .sdiv::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4a5568; }
+  .sw { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* TIMELINE */
+  .tl-entry { display: flex; gap: 18px; padding-bottom: 24px; position: relative; }
+  .tl-entry::before { content: ''; position: absolute; left: 14px; top: 28px; bottom: 0; width: 1px; background: var(--border); }
+  .tl-entry:last-child::before { display: none; }
+  .tl-dot { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; background: var(--bg-tint); color: var(--steelhead); border: 2px solid var(--border); position: relative; z-index: 1; }
+  .tl-dot.b { background: var(--wk-blue); color: #fff; border-color: var(--wk-blue); }
+  .tl-dot.o { background: var(--sunset-orange); color: #fff; border-color: var(--sunset-orange); }
+  .tl-content { padding-top: 4px; }
+  .tl-yr { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dark-blue); margin-bottom: 3px; }
+  .tl-body { font-size: 13px; line-height: 1.7; color: #4a5568; }
+  .tl-body strong { color: var(--dark-blue); font-weight: 600; }
+
+  /* WATERBODY TABLE */
+  .wbt { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .wbt th { text-align: left; padding: 8px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--steelhead); border-bottom: 2px solid var(--border); }
+  .wbt td { padding: 10px 12px; border-bottom: 1px solid var(--bg-tint); vertical-align: top; }
+  .wbt tr:last-child td { border-bottom: none; }
+  .wbt td.wbn { font-weight: 700; color: var(--dark-blue); }
+  .dot-row { display: flex; gap: 3px; flex-wrap: wrap; }
+  .yd { width: 20px; height: 20px; border-radius: 4px; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: var(--bg-tint); color: #b0bbc8; }
+  .yd.cy { background: rgba(243,115,33,0.12); color: var(--sunset-orange); border: 1px solid rgba(243,115,33,0.3); }
+  .yd.eu { background: rgba(117,154,53,0.1); color: var(--leaf-green); border: 1px solid rgba(117,154,53,0.3); }
+  .yd.su { background: rgba(122,164,221,0.12); color: var(--light-blue); border: 1px solid rgba(122,164,221,0.3); }
+  .yd.cl { background: var(--sunset-orange); color: #fff; font-weight: 900; }
+
+  /* CHIPS */
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-tint); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 13px; line-height: 1.5; color: var(--body-color); }
+  .chip strong { color: var(--dark-blue); font-weight: 700; }
+  .chip.b { background: #eef4fc; border-color: #c5d9f0; }
+  .chip.b strong { color: var(--wk-blue); }
+  .chip.g { background: #f0f6e8; border-color: #c6dba3; }
+  .chip.g strong { color: var(--leaf-green); }
+  .chip.o { background: #fdf3ec; border-color: #f5c9a5; }
+  .chip.o strong { color: var(--sunset-orange); }
+
+  /* PILLS */
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-left: 6px; vertical-align: middle; }
+  .pill.al { background: #fdf3ec; color: var(--sunset-orange); border: 1px solid #f5c9a5; }
+  .pill.gd { background: #f0f6e8; color: var(--leaf-green); border: 1px solid #c6dba3; }
+  .pill.nt { background: #eef4fc; color: var(--wk-blue); border: 1px solid #c5d9f0; }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg-subtle); }
+  ::-webkit-scrollbar-thumb { background: var(--light-blue); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo-block">
+    <div class="logo-circle">BNW</div>
+    <div class="logo-text">
+      <strong>Buffalo Niagara Waterkeeper</strong>
+      <span>Riverwatch Data Dashboard</span>
+    </div>
+  </div>
+  <div class="header-badge">2011 – 2025 · 15 Years</div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Citizen Science Water Quality Program</div>
+    <h1>Watching Our Waters, <em>Year by Year</em></h1>
+    <p>Since 2011, trained volunteers have collected water quality data across the Niagara River/Lake Erie Watershed. This dashboard presents findings on Harmful Algal Blooms, PFAS contamination, and water quality parameters from all 15 annual Riverwatch reports.</p>
+    <div class="stat-row">
+      <div class="stat-item"><div class="stat-num">15</div><div class="stat-lbl">Years of Reports</div></div>
+      <div class="stat-item"><div class="stat-num blue">58</div><div class="stat-lbl">Monitoring Sites (2025)</div></div>
+      <div class="stat-item"><div class="stat-num orange">22</div><div class="stat-lbl">PFAS Sites Tested</div></div>
+      <div class="stat-item"><div class="stat-num green">11+</div><div class="stat-lbl">Waterways with HABs</div></div>
+    </div>
+  </div>
+</section>
+
+<nav class="tab-nav">
+  <button class="tab-btn habs active" onclick="switchTab('habs',this)"><span class="tab-dot"></span>Harmful Algal Blooms</button>
+  <button class="tab-btn pfas" onclick="switchTab('pfas',this)"><span class="tab-dot"></span>PFAS Testing</button>
+  <button class="tab-btn wqp" onclick="switchTab('wqp',this)"><span class="tab-dot"></span>Water Quality Parameters</button>
+</nav>
+
+
+<!-- PANEL: HABs -->
+<div id="panel-habs" class="panel active">
+  <div class="panel-header">
+    <h2>Harmful Algal Blooms <span class="ao">(HABs)</span></h2>
+    <p>HABs have been formally tracked in Riverwatch reports since 2018–2019. The program has documented a troubling growth in bloom frequency and geographic spread across the watershed, driven by warmer temperatures, nutrient-rich runoff, and climate change.</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi o"><div class="kpi-l">Most Persistent Site</div><div class="kpi-v">8 yrs</div><div class="kpi-s">Hyde Park Lake — every year since 2017</div></div>
+    <div class="kpi lb"><div class="kpi-l">Unique Sites Affected</div><div class="kpi-v">11+</div><div class="kpi-s">Since formal tracking began (2018)</div></div>
+    <div class="kpi o"><div class="kpi-l">Beach Closures</div><div class="kpi-v">2+</div><div class="kpi-s">Green Lake: full season 2024 &amp; 2025</div></div>
+    <div class="kpi b"><div class="kpi-l">Bloom Types Documented</div><div class="kpi-v">3</div><div class="kpi-s">Cyanobacteria, Euglena, Lyngbya</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title"><div class="ctbar" style="background:var(--sunset-orange)"></div>Waterbodies Documenting HABs Per Year (2018–2025)</div>
+    <canvas id="habsChart" height="85"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="sw" style="background:var(--sunset-orange)"></div>Cyanobacteria confirmed</div>
+      <div class="legend-item"><div class="sw" style="background:var(--leaf-green)"></div>Euglena blooms</div>
+    </div>
+    <p class="chart-note">Formal HAB tracking began in 2018–2019. Earlier Riverwatch reports noted occasional algal activity but did not systematically document blooms by waterbody.</p>
+  </div>
+
+  <div class="sdiv">Waterbody-by-Waterbody Record (2017–2025)</div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title"><div class="ctbar" style="background:var(--sunset-orange)"></div>HAB History by Waterbody</div>
+    <div style="overflow-x:auto;">
+      <table class="wbt">
+        <thead><tr><th style="min-width:190px;">Waterbody</th><th>2017–2025 Record</th><th style="min-width:260px;">Notes</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="wbn">Hyde Park Lake<br><span style="font-weight:400;font-size:11px;color:var(--steelhead)">Niagara Falls, NY</span></td>
+            <td><div class="dot-row"><div class="yd cy">17</div><div class="yd cy">18</div><div class="yd su">19</div><div class="yd cy">20</div><div class="yd cy">21</div><div class="yd cy">22</div><div class="yd cy">23</div><div class="yd cy">24</div><div class="yd cy">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">Persistent every year since 2017. 3 confirmed reports in 2020. Toxins (microcystin) detected 2021 &amp; 2023. Green infrastructure project completed 2025.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Ellicott Creek<br><span style="font-weight:400;font-size:11px;color:var(--steelhead)">Tonawanda, NY</span></td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd eu">19</div><div class="yd eu">20</div><div class="yd cy">21</div><div class="yd cy">22</div><div class="yd cy">23</div><div class="yd eu">24</div><div class="yd eu">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">Persistent Euglena blooms since 2019. Cyanobacteria (Lyngbya) first identified 2021. Euglena identified as non-toxic <em>trisella</em> by Daemen University researchers.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Tonawanda Creek<br><span style="font-weight:400;font-size:11px;color:var(--steelhead)">Tonawanda / N. Tonawanda</span></td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd">19</div><div class="yd eu">20</div><div class="yd eu">21</div><div class="yd eu">22</div><div class="yd cy">23</div><div class="yd eu">24</div><div class="yd eu">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">Euglena blooms near Ellicott Island Bark Park. Lyngbya near N. Tonawanda Botanical Gardens (2021). Oscillatoria sp. from Ransom Creek to river mouth (2023).</td>
+          </tr>
+          <tr>
+            <td class="wbn">Green Lake<br><span style="font-weight:400;font-size:11px;color:var(--steelhead)">Orchard Park, NY</span></td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd">19</div><div class="yd cy">20</div><div class="yd">21</div><div class="yd">22</div><div class="yd">23</div><div class="yd cl">24</div><div class="yd cl">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;"><strong style="color:var(--sunset-orange)">⚠ Beach closed</strong> entire 2024 season. Cyanobacteria confirmed again in 2025; beach remained closed a second consecutive year.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Gill Creek<br><span style="font-weight:400;font-size:11px;color:var(--steelhead)">Niagara Falls, NY</span></td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd">19</div><div class="yd">20</div><div class="yd cy">21</div><div class="yd">22</div><div class="yd">23</div><div class="yd">24</div><div class="yd cy">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">Cyanobacteria at Gill Creek Park (2021). Confirmed bloom near Porter Rd in July 2025. Subject of EPA GLRI-funded green infrastructure project.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Ransom Creek</td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd">19</div><div class="yd eu">20</div><div class="yd">21</div><div class="yd">22</div><div class="yd cy">23</div><div class="yd">24</div><div class="yd">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">Euglena blooms 2020; Oscillatoria sp. cyanobacteria confirmed 2023.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Beth Pond / Tifft Preserve</td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd su">19</div><div class="yd">20</div><div class="yd">21</div><div class="yd">22</div><div class="yd">23</div><div class="yd">24</div><div class="yd">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">One "suspicious" bloom documented October 2019.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Eighteenmile Creek<br><span style="font-weight:400;font-size:11px;color:var(--steelhead)">Hamburg, NY</span></td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd">19</div><div class="yd">20</div><div class="yd cy">21</div><div class="yd">22</div><div class="yd">23</div><div class="yd">24</div><div class="yd">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">Single cyanobacteria bloom near creek mouth, late August 2021. Did not persist.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Mirror Lake<br><span style="font-weight:400;font-size:11px;color:var(--steelhead)">Forest Lawn Cemetery, Buffalo</span></td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd">19</div><div class="yd">20</div><div class="yd cy">21</div><div class="yd">22</div><div class="yd">23</div><div class="yd">24</div><div class="yd">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">Cyanobacteria bloom September 2021.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Java Lake</td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd">19</div><div class="yd">20</div><div class="yd">21</div><div class="yd">22</div><div class="yd">23</div><div class="yd cy">24</div><div class="yd cy">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">Two confirmed blooms in 2024 (Aug &amp; Sept). Confirmed again September 2025.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Clear Lake<br><span style="font-weight:400;font-size:11px;color:var(--steelhead)">North Collins, NY</span></td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd">19</div><div class="yd">20</div><div class="yd">21</div><div class="yd">22</div><div class="yd">23</div><div class="yd">24</div><div class="yd cy">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">First confirmed bloom August 2025. New site added to active monitoring.</td>
+          </tr>
+          <tr>
+            <td class="wbn">Lake Kirsty<br><span style="font-weight:400;font-size:11px;color:var(--steelhead)">Tifft Nature Preserve</span></td>
+            <td><div class="dot-row"><div class="yd">17</div><div class="yd">18</div><div class="yd">19</div><div class="yd">20</div><div class="yd">21</div><div class="yd">22</div><div class="yd">23</div><div class="yd">24</div><div class="yd cy">25</div></div></td>
+            <td style="font-size:12px;color:#4a5568;">Confirmed by DEC in July 2025.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend" style="margin-top:14px;">
+      <div class="legend-item"><div class="sw" style="background:rgba(243,115,33,0.15);border:1px solid rgba(243,115,33,0.4)"></div>Cyanobacteria confirmed</div>
+      <div class="legend-item"><div class="sw" style="background:rgba(117,154,53,0.12);border:1px solid rgba(117,154,53,0.4)"></div>Euglena bloom</div>
+      <div class="legend-item"><div class="sw" style="background:rgba(122,164,221,0.12);border:1px solid rgba(122,164,221,0.4)"></div>Suspicious / unconfirmed</div>
+      <div class="legend-item"><div class="sw" style="background:var(--sunset-orange)"></div>Beach closure</div>
+      <div class="legend-item"><div class="sw" style="background:var(--bg-tint);border:1px solid var(--border)"></div>No bloom recorded</div>
+    </div>
+  </div>
+
+  <div class="sdiv">Hyde Park Lake — A Closer Look</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--sunset-orange)"></div>The Persistent Problem</div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Hyde Park Lake — formed by damming Gill Creek in Niagara Falls — has experienced cyanobacteria blooms every year since 2017, the longest-running persistent bloom site in the watershed.</p><br>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">In 2021, BNW began testing for HAB <strong style="color:var(--dark-blue)">toxins</strong> (microcystin &amp; cylindrospermopsin) as part of a Bowling Green State University pilot project. Testing confirmed that microcystin levels more than doubled during peak bloom weeks and remained elevated as algae decayed — meaning the water stays dangerous even after a bloom visually clears.</p><br>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">BNW has deemed the lake <strong style="color:var(--dark-blue)">unsafe for paddling from July onward</strong> in most seasons. Blooms have also disrupted outdoor education programming with neighboring school groups.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--leaf-green)"></div>The Green Infrastructure Response</div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">In 2022, BNW received EPA Great Lakes Restoration Initiative (GLRI) funding to design green infrastructure targeting two stormwater outfalls and golf course runoff entering Gill Creek above Hyde Park Lake.</p><br>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Construction ran from spring to fall 2025. The completed project:</p>
+      <ul style="margin:10px 0 0 16px;font-size:13px;line-height:1.9;color:#4a5568;">
+        <li>Captures and infiltrates over <strong style="color:var(--leaf-green)">2 million gallons</strong> of stormwater annually</li>
+        <li>Routes runoff through two new <strong style="color:var(--dark-blue)">wetland filtration areas</strong></li>
+        <li>Added meadow plantings, shoreline trees, and a lake aeration fountain</li>
+        <li>Reduces the phosphorus and nutrients that fuel cyanobacteria blooms</li>
+      </ul><br>
+      <p style="font-size:11px;color:var(--steelhead);">Monitoring and follow-up invasive species treatment ongoing through 2026. Partners: BNW and the City of Niagara Falls.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- PANEL: PFAS -->
+<div id="panel-pfas" class="panel">
+  <div class="panel-header">
+    <h2>PFAS Surface Water <span class="ab">Testing</span></h2>
+    <p>Buffalo Niagara Waterkeeper began PFAS surface water testing in 2022 — the first systematic effort of its kind in the region. The program has grown from a single creek to 22 waterways across the entire Niagara River/Lake Erie Watershed by 2025.</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi b"><div class="kpi-l">Testing Launched</div><div class="kpi-v">2022</div><div class="kpi-s">First surface water PFAS testing in region</div></div>
+    <div class="kpi lb"><div class="kpi-l">Waterways Tested (2025)</div><div class="kpi-v">22</div><div class="kpi-s">Up from 12 (2023) and 18 (2024)</div></div>
+    <div class="kpi o"><div class="kpi-l">Detection Rate (2022)</div><div class="kpi-v">83%</div><div class="kpi-s">Samples with at least one PFAS compound</div></div>
+    <div class="kpi g"><div class="kpi-l">PFAS Chemicals Known</div><div class="kpi-v">15K+</div><div class="kpi-s">None regulated in surface water federally</div></div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--wk-blue)"></div>Program Expansion (2022–2025)</div>
+      <canvas id="pfasGrowthChart" height="185"></canvas>
+      <p class="chart-note">Launched in 2022 with Cayuga Creek as the pilot site. Each year BNW has expanded geographic scope. An interactive public map of results is available at bnwaterkeeper.org/pfas-pfoa-pfos</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--light-blue)"></div>Regulatory Milestones</div>
+      <div class="tl-entry"><div class="tl-dot b">22</div><div class="tl-content"><div class="tl-yr">2022</div><div class="tl-body">BNW launches surface water PFAS testing. NYS DOH regulates PFOA &amp; PFOS in drinking water at <strong>10 ppt</strong>. No federal standard yet. First pilot: <strong>83% of samples detect at least one PFAS compound.</strong></div></div></div>
+      <div class="tl-entry"><div class="tl-dot b">23</div><div class="tl-content"><div class="tl-yr">2023</div><div class="tl-body">EPA proposes first-ever National PFAS drinking water regulation. BNW expands to <strong>12 waterways.</strong> DEC creates Ambient Water Quality Guidance Values for PFOS, PFOA, and 1,4-Dioxane.</div></div></div>
+      <div class="tl-entry"><div class="tl-dot o">24</div><div class="tl-content"><div class="tl-yr">2024</div><div class="tl-body">EPA finalizes federal PFAS rule: MCL set at <strong>4 ppt</strong> for PFOS and PFOA (stricter than NY's 10 ppt). Compliance deadline: 2029. BNW expands to <strong>18 waterways.</strong></div></div></div>
+      <div class="tl-entry"><div class="tl-dot">25</div><div class="tl-content"><div class="tl-yr">2025</div><div class="tl-body">EPA proposes extending compliance to <strong>2031</strong> and rescinding MCLs for 4 additional PFAS. No changes finalized as of December 2025. BNW expands to <strong>22 waterways.</strong> Surface water remains federally unprotected.</div></div></div>
+    </div>
+  </div>
+
+  <div class="sdiv">Understanding PFAS</div>
+  <div class="grid-3" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--light-blue)"></div>What Are PFAS?</div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">PFAS (Per- and polyfluoroalkyl substances) are a class of <strong style="color:var(--dark-blue)">15,000+ man-made chemicals</strong> that do not naturally break down — earning the name "forever chemicals." Used industrially to make products water, stain, and heat resistant, they accumulate in the environment and in human bodies.</p><br>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Exposure has been linked to cancer, liver damage, decreased fertility, and immune system effects.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--sunset-orange)"></div>Exposure &amp; Scale</div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Experts estimate that <strong style="color:var(--dark-blue)">200+ million Americans</strong> are exposed to PFAS through drinking water.</p><br>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Nearly <strong style="color:var(--sunset-orange)">30,000 facilities</strong> are estimated to discharge PFAS into surface waters across the US — currently without federal regulation under the Clean Water Act. Surface waters have no enforceable PFAS protections at the federal level.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--leaf-green)"></div>Why BNW Tests Surface Water</div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Because surface water currently lacks federal PFAS protections, BNW began testing in 2022 to <strong style="color:var(--dark-blue)">fill a critical data gap</strong> for the watershed. Results are publicly available and mapped interactively, with sites categorized by PFAS detection levels relative to the EPA's 2024 drinking water standard.</p><br>
+      <p style="font-size:11px;color:var(--steelhead);">Visit: bnwaterkeeper.org/pfas-pfoa-pfos</p>
+    </div>
+  </div>
+
+  <div class="sdiv">2022 Pilot Findings: Cayuga Creek</div>
+  <div class="card">
+    <div class="card-title"><div class="ctbar" style="background:var(--sunset-orange)"></div>What the First Year of Sampling Found</div>
+    <p style="font-size:14px;line-height:1.8;color:#4a5568;max-width:820px;margin-bottom:20px;">In the program's inaugural year, BNW focused initial testing on <strong style="color:var(--dark-blue)">Cayuga Creek in Niagara County.</strong> Results were striking: <strong style="color:var(--sunset-orange)">83% of all samples detected at least one PFAS compound,</strong> with multiple distinct PFAS chemicals identified in a single sample — illustrating that even one waterway can carry a complex mixture of these persistent chemicals. These findings helped build the case for rapid geographic expansion in subsequent years.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div class="chip o"><strong>83%</strong> detection rate — 2022 pilot</div>
+      <div class="chip b"><strong>12 waterways</strong> by 2023</div>
+      <div class="chip b"><strong>18 waterways</strong> by 2024</div>
+      <div class="chip b"><strong>22 waterways</strong> by 2025</div>
+      <div class="chip g">Full data: <strong>bnwaterkeeper.org/pfas-pfoa-pfos</strong></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- PANEL: WATER QUALITY PARAMETERS -->
+<div id="panel-wqp" class="panel">
+  <div class="panel-header">
+    <h2>Water Quality <span class="ag">Parameters</span></h2>
+    <p>Riverwatch volunteers test four core water quality parameters monthly (May–October): Dissolved Oxygen, Conductivity, pH, and Turbidity. Results are compared against NYS DEC water quality standards. Charts reflect watershed-wide summary findings as reported annually. Since 2019, BNW has reported a consistent percentage exceedance format that enables year-over-year comparison.</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi g"><div class="kpi-l">Best Performer</div><div class="kpi-v" style="font-size:22px;">Dissolved O₂</div><div class="kpi-s">~0–1% out of range since 2019</div></div>
+    <div class="kpi o"><div class="kpi-l">Most Persistent Issue</div><div class="kpi-v" style="font-size:22px;">Conductivity</div><div class="kpi-s">52–71% out of range (2019–2025)</div></div>
+    <div class="kpi lb"><div class="kpi-l">Turbidity Note</div><div class="kpi-v">↓ 2024</div><div class="kpi-s">Methodology change — not a cleanup result</div></div>
+    <div class="kpi b"><div class="kpi-l">Volunteer Sites (2025)</div><div class="kpi-v">58</div><div class="kpi-s">Monthly baseline monitoring sites</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title"><div class="ctbar" style="background:var(--leaf-green)"></div>All Four Parameters — % of Samples Out of Standard (2019–2025)</div>
+    <canvas id="wqpTrendChart" height="85"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="sw" style="background:var(--sunset-orange)"></div>Conductivity</div>
+      <div class="legend-item"><div class="sw" style="background:var(--light-blue)"></div>Turbidity (see note)</div>
+      <div class="legend-item"><div class="sw" style="background:var(--leaf-green)"></div>pH</div>
+      <div class="legend-item"><div class="sw" style="background:var(--wk-blue)"></div>Dissolved Oxygen</div>
+    </div>
+    <p class="chart-note">⚠ Turbidity methodology note: Starting in 2024, BNW changed its turbidity comparison threshold from the NYS DEC standard (5 NTU) to 25 NTU for data visualization purposes. This change — not a water quality improvement — explains the apparent sharp drop from 59% (2023) to 9.5% (2024). Pre-2024 figures use the 5 NTU standard.</p>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--sunset-orange)"></div>Conductivity — Most Widespread Concern</div>
+      <canvas id="conductivityChart" height="185"></canvas>
+      <p class="chart-note">Conductivity measures dissolved ions — elevated levels signal road salt, agricultural runoff, sewage, or urban stormwater. It is the most consistently widespread water quality failure across the watershed. In 2025, BNW launched a dedicated Chloride Monitoring program to track road salt impacts more precisely.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--leaf-green)"></div>pH &amp; Dissolved Oxygen — Relative Strengths</div>
+      <canvas id="phDoChart" height="185"></canvas>
+      <p class="chart-note">DO stays consistently near zero exceedance — a positive sign for aquatic life. The 2022 pH spike to 10% may be linked to HAB activity, as dense algal blooms shift water alkalinity upward through daytime photosynthesis. pH returned to 3–4% in 2023–2025.</p>
+    </div>
+  </div>
+
+  <div class="sdiv">2011 Historical Baseline</div>
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--steelhead)"></div>Where the Program Started: 2011 Per-Stream Data</div>
+      <p style="font-size:13px;line-height:1.7;color:#4a5568;margin-bottom:16px;">The 2011 report was the first year of Riverwatch data and used per-stream reporting rather than watershed-wide percentages. Key findings from the founding year:</p>
+      <table class="wbt">
+        <thead><tr><th>Parameter / Stream</th><th>2011 Finding</th></tr></thead>
+        <tbody>
+          <tr><td style="color:#4a5568;">Turbidity — all streams</td><td style="color:var(--sunset-orange);font-weight:700;">87% exceeded standard</td></tr>
+          <tr><td style="color:#4a5568;">pH — all streams</td><td style="color:var(--leaf-green);font-weight:700;">Only 2% outside standard</td></tr>
+          <tr><td style="color:#4a5568;">DO — Cayuga Creek (worst)</td><td style="color:var(--sunset-orange);font-weight:700;">17% below standard</td></tr>
+          <tr><td style="color:#4a5568;">Conductivity — Ellicott Creek</td><td style="color:var(--sunset-orange);font-weight:700;">83% outside range</td></tr>
+          <tr><td style="color:#4a5568;">Conductivity — Scajaquada Creek</td><td style="color:var(--sunset-orange);font-weight:700;">80% outside range</td></tr>
+          <tr><td style="color:#4a5568;">Turbidity — Tonawanda Creek</td><td style="color:var(--sunset-orange);font-weight:700;">93–97% exceeded standard</td></tr>
+          <tr><td style="color:#4a5568;">Program scope</td><td style="color:var(--wk-blue);font-weight:700;">28 sites · 147 events · 296 volunteer hours</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--wk-blue)"></div>How Reporting Evolved: 2012–2018</div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Between 2012 and 2018, Riverwatch moved to a <strong style="color:var(--dark-blue)">Water Quality Index (WQI)</strong> — a composite score (1–100) blending all four parameters, temperature, and site context into a single letter grade (A–F) per monitoring location, using the National Sanitation Foundation's calculator.</p><br>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">This approach was effective for communicating grades to the public, but the composite format makes direct parameter-by-parameter comparisons with 2011 or the 2019–2025 data difficult. WQI scores during this period generally ranged from <strong style="color:var(--dark-blue)">Grade B to C</strong> across most sites.</p><br>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Starting in 2019, BNW shifted to reporting <strong style="color:var(--dark-blue)">watershed-wide percentage exceedance per parameter</strong> — a cleaner, more consistent format that makes year-over-year trends immediately visible. This is the format shown in the trend charts on this tab.</p>
+    </div>
+  </div>
+
+  <div class="sdiv">What Each Parameter Measures</div>
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--sunset-orange)"></div>Conductivity <span class="pill al">Most Widespread Problem</span></div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Conductivity measures how well water can pass an electrical current — a proxy for <strong style="color:var(--dark-blue)">dissolved salts, ions, and pollutants.</strong> In WNY, elevated conductivity is strongly tied to road salt runoff, agricultural nutrients, and urban stormwater. It has been the most consistently problematic parameter since monitoring began — affecting 52–71% of samples every year since 2019.</p><br>
+      <p style="font-size:11px;color:var(--steelhead);"><strong>NYS Standard:</strong> Samples shall not fall below the minimum or exceed the maximum threshold for the stream's designated class.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--light-blue)"></div>Turbidity <span class="pill nt">Methodology Changed 2024</span></div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Turbidity measures how <strong style="color:var(--dark-blue)">clear or cloudy</strong> the water is — how much suspended sediment, algae, or silt is present. High turbidity blocks sunlight, raises water temperatures, and smothers fish spawning areas. It was the worst-performing parameter in early years (87% exceedance in 2011). In 2024, BNW changed its visualization threshold from 5 NTU to 25 NTU — a reporting methodology shift, not a cleanup achievement.</p><br>
+      <p style="font-size:11px;color:var(--steelhead);"><strong>NYS Standard:</strong> A single sample shall not exceed 5 NTU above natural background.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--wk-blue)"></div>Dissolved Oxygen (DO) <span class="pill gd">Strong Result</span></div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">Dissolved oxygen is <strong style="color:var(--dark-blue)">essential for aquatic life.</strong> Low DO kills fish and signals decomposing organic matter or elevated water temperatures. DO has been the best-performing parameter across the entire monitoring period — fewer than 1% of samples have fallen below the standard since 2019. Localized summer drops in smaller streams in 2011 remain a pattern to watch as climate change pushes water temperatures higher.</p><br>
+      <p style="font-size:11px;color:var(--steelhead);"><strong>NYS Standard:</strong> No less than 6.0 mg/L for the Niagara River; 4.0 mg/L for Class C waters.</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="ctbar" style="background:var(--leaf-green)"></div>pH</div>
+      <p style="font-size:13px;line-height:1.8;color:#4a5568;">pH measures <strong style="color:var(--dark-blue)">water acidity or alkalinity</strong> (scale 0–14; 7 = neutral). Most aquatic life thrives between 6.5 and 8.5. pH has remained mostly within standard since 2019, with exceedance rates of 3–10%. The 2022 spike to 10% likely reflects HAB activity — algal blooms shift alkalinity upward through daytime photosynthesis. The return to 3–4% in 2023–2025 suggests no long-term deterioration.</p><br>
+      <p style="font-size:11px;color:var(--steelhead);"><strong>NYS Standard:</strong> Between 6.5 and 8.5 for most freshwater classifications.</p>
+    </div>
+  </div>
+
+  <div class="sdiv">Monitoring Site Growth (2011–2025)</div>
+  <div class="card">
+    <div class="card-title"><div class="ctbar" style="background:var(--leaf-green)"></div>Volunteer Monitoring Coverage Expansion</div>
+    <canvas id="sitesChart" height="70"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="sw" style="background:rgba(117,154,53,0.65)"></div>Baseline WQ volunteer sites</div>
+      <div class="legend-item"><div class="sw" style="background:rgba(0,91,170,0.6)"></div>Bacteria sampling sites</div>
+    </div>
+    <p class="chart-note">From 28 sites in 2011 to 58 baseline water quality monitoring sites in 2025, plus up to 34 bacteria sampling sites — Riverwatch has substantially expanded its geographic footprint. The 2012–2018 WQI era used a wider site network (up to 72 sites) before standardizing to a focused core set from 2019 onward.</p>
+  </div>
+</div>
+
+
+<script>
+function switchTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+Chart.defaults.color = '#a3a3a3';
+Chart.defaults.font.family = "'Montserrat', sans-serif";
+Chart.defaults.font.size = 11;
+const gc = 'rgba(0,0,0,0.05)';
+const bc = 'rgba(0,0,0,0.08)';
+const tip = {
+  backgroundColor: '#003a5d', borderColor: 'rgba(0,58,93,0.15)', borderWidth: 1,
+  titleColor: '#fff', bodyColor: 'rgba(255,255,255,0.8)',
+  padding: 12, cornerRadius: 8,
+  titleFont: { weight: '700', family: "'Montserrat',sans-serif", size: 11 },
+  bodyFont:  { family: "'Montserrat',sans-serif", size: 11 },
+};
+
+// HABs Chart
+new Chart(document.getElementById('habsChart'), {
+  type: 'bar',
+  data: {
+    labels: ['2018','2019','2020','2021','2022','2023','2024','2025'],
+    datasets: [
+      { label: 'Cyanobacteria', data: [1,2,2,5,2,4,3,5], backgroundColor: 'rgba(243,115,33,0.75)', borderRadius: 4, stack: 's' },
+      { label: 'Euglena',       data: [0,1,3,2,2,2,2,2], backgroundColor: 'rgba(117,154,53,0.7)',  borderRadius: 4, stack: 's' },
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { ...tip, callbacks: { footer: i => ({ '2024':'⚠ Green Lake beach closed', '2025':'⚠ Green Lake beach closed (2nd year)' })[i[0].label] || '' } }
+    },
+    scales: {
+      x: { stacked: true, grid: { color: gc }, border: { color: bc } },
+      y: { stacked: true, grid: { color: gc }, border: { color: bc }, ticks: { stepSize: 1 },
+           title: { display: true, text: 'Waterbodies Affected', color: '#a3a3a3', font: { size: 10, weight: '600' } } }
+    }
+  }
+});
+
+// PFAS Growth
+new Chart(document.getElementById('pfasGrowthChart'), {
+  type: 'line',
+  data: {
+    labels: ['2022','2023','2024','2025'],
+    datasets: [{ label: 'Waterways Sampled', data: [1,12,18,22], borderColor: '#005baa', backgroundColor: 'rgba(0,91,170,0.07)', fill: true, tension: 0.4, pointBackgroundColor: '#005baa', pointRadius: 6, pointHoverRadius: 8, borderWidth: 2.5 }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false }, tooltip: { ...tip, callbacks: { label: i => ` ${i.raw} waterways sampled` } } },
+    scales: {
+      x: { grid: { color: gc }, border: { color: bc } },
+      y: { grid: { color: gc }, border: { color: bc }, min: 0, max: 25, ticks: { stepSize: 5 },
+           title: { display: true, text: 'Waterways Tested', color: '#a3a3a3', font: { size: 10, weight: '600' } } }
+    }
+  }
+});
+
+// WQP Trend
+const wqpYrs = ['2019','2020','2021','2022','2023','2024','2025'];
+new Chart(document.getElementById('wqpTrendChart'), {
+  type: 'line',
+  data: {
+    labels: wqpYrs,
+    datasets: [
+      { label: 'Conductivity',       data: [57,52,64,71,69,58,66], borderColor: '#f37321', backgroundColor: 'transparent', tension: 0.35, pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: '#f37321', borderWidth: 2.5 },
+      { label: 'Turbidity (see note)',data: [68,71,64,60,59,9.5,10], borderColor: '#7aa4dd', backgroundColor: 'transparent', tension: 0.35, pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: '#7aa4dd', borderWidth: 2.5 },
+      { label: 'pH',                  data: [9,7.5,5,10,3,3,4],   borderColor: '#759a35', backgroundColor: 'transparent', tension: 0.35, pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: '#759a35', borderWidth: 2 },
+      { label: 'Dissolved Oxygen',    data: [1,0.5,0.7,0.7,0.7,0,1], borderColor: '#005baa', backgroundColor: 'transparent', tension: 0.35, pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: '#005baa', borderWidth: 2 },
+    ]
+  },
+  options: {
+    responsive: true, interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { ...tip, callbacks: { label: i => ` ${i.dataset.label}: ${i.raw}%`, footer: i => (i[0].label==='2024'||i[0].label==='2025') ? '⚠ Turbidity uses 25 NTU threshold (not 5 NTU)' : '' } }
+    },
+    scales: {
+      x: { grid: { color: gc }, border: { color: bc } },
+      y: { grid: { color: gc }, border: { color: bc }, min: 0, max: 80, ticks: { callback: v => v+'%' },
+           title: { display: true, text: '% Samples Out of Standard', color: '#a3a3a3', font: { size: 10, weight: '600' } } }
+    }
+  }
+});
+
+// Conductivity
+new Chart(document.getElementById('conductivityChart'), {
+  type: 'bar',
+  data: {
+    labels: wqpYrs,
+    datasets: [{ label: '% Out of Range', data: [57,52,64,71,69,58,66],
+      backgroundColor: ['rgba(243,115,33,0.55)','rgba(243,115,33,0.5)','rgba(243,115,33,0.65)','rgba(243,115,33,0.9)','rgba(243,115,33,0.75)','rgba(243,115,33,0.6)','rgba(243,115,33,0.7)'],
+      borderWidth: 0, borderRadius: 5 }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false }, tooltip: { ...tip, callbacks: { label: i => ` ${i.raw}% out of range`, footer: i => i[0].label==='2022' ? '↑ Peak year — 71% exceedance' : '' } } },
+    scales: {
+      x: { grid: { color: gc }, border: { color: bc } },
+      y: { grid: { color: gc }, border: { color: bc }, min: 0, max: 80, ticks: { callback: v => v+'%' },
+           title: { display: true, text: '% Out of Range', color: '#a3a3a3', font: { size: 10, weight: '600' } } }
+    }
+  }
+});
+
+// pH & DO
+new Chart(document.getElementById('phDoChart'), {
+  type: 'line',
+  data: {
+    labels: wqpYrs,
+    datasets: [
+      { label: 'pH', data: [9,7.5,5,10,3,3,4], borderColor: '#759a35', backgroundColor: 'rgba(117,154,53,0.07)', fill: true, tension: 0.4, pointBackgroundColor: '#759a35', pointRadius: 5, borderWidth: 2.5 },
+      { label: 'Dissolved Oxygen', data: [1,0.5,0.7,0.7,0.7,0,1], borderColor: '#005baa', backgroundColor: 'rgba(0,91,170,0.05)', fill: true, tension: 0.4, pointBackgroundColor: '#005baa', pointRadius: 5, borderWidth: 2 }
+    ]
+  },
+  options: {
+    responsive: true, interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { display: false }, tooltip: { ...tip, callbacks: { label: i => ` ${i.dataset.label}: ${i.raw}%`, footer: i => i[0].label==='2022' ? 'pH spike — possible HAB activity link' : '' } } },
+    scales: {
+      x: { grid: { color: gc }, border: { color: bc } },
+      y: { grid: { color: gc }, border: { color: bc }, min: 0, max: 14, ticks: { callback: v => v+'%' },
+           title: { display: true, text: '% Out of Standard', color: '#a3a3a3', font: { size: 10, weight: '600' } } }
+    }
+  }
+});
+
+// Sites Expansion
+new Chart(document.getElementById('sitesChart'), {
+  type: 'bar',
+  data: {
+    labels: ['2011','2012','2013','2014','2015','2016','2017','2018','2019','2020','2021','2022','2023','2024','2025'],
+    datasets: [
+      { label: 'Baseline WQ Volunteer Sites', data: [28,30,35,52,55,58,72,72,65,60,62,62,62,62,58], backgroundColor: 'rgba(117,154,53,0.6)', borderWidth: 0, borderRadius: 4, stack: 'a' },
+      { label: 'Bacteria Sampling Sites', data: [null,null,null,null,null,null,null,null,null,10,19,null,10,34,31], backgroundColor: 'rgba(0,91,170,0.55)', borderWidth: 0, borderRadius: 4, stack: 'b' }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: true, labels: { color: '#718096', font: { size: 10, family: "'Montserrat',sans-serif" }, boxWidth: 10, boxHeight: 10 } },
+      tooltip: { ...tip, callbacks: { label: i => i.raw ? ` ${i.dataset.label}: ${i.raw} sites` : null } }
+    },
+    scales: {
+      x: { grid: { color: gc }, border: { color: bc } },
+      y: { grid: { color: gc }, border: { color: bc }, min: 0, max: 85, title: { display: true, text: 'Number of Sites', color: '#a3a3a3', font: { size: 10, weight: '600' } } }
+    }
+  }
+});
+</script>
+</body>
+</html>

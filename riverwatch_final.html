@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riverwatch Water Quality Dashboard | Buffalo Niagara Waterkeeper</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  /* BNW Primary */
+  --dark-blue:     #003a5d;
+  --leaf-green:    #759a35;
+  --sunset-orange: #f37321;
+  /* BNW Secondary */
+  --wk-blue:       #005baa;
+  --grasslands:    #c0ea57;
+  --steelhead:     #a3a3a3;
+  --light-blue:    #7aa4dd;
+  /* UI */
+  --white:         #ffffff;
+  --off-white:     #f4f7f9;
+  --rule:          #dde5ec;
+  --text:          #1a2b38;
+  --text-mid:      #4a6070;
+  --text-light:    #7a95a6;
+  --alert-red:     #c0392b;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 21px;
+  background: var(--off-white);
+  color: var(--text);
+}
+
+/* ── HEADER ── */
+.header { background: var(--dark-blue); }
+
+.header-top {
+  background: rgba(0,0,0,.2);
+  padding: .55rem 2rem;
+  display: flex; align-items: center; gap: .65rem;
+}
+.org-name {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: rgba(255,255,255,.5);
+}
+
+.header-body {
+  max-width: 1160px; margin: 0 auto;
+  padding: 2.75rem 2rem 2.5rem;
+  display: flex; align-items: flex-end;
+  justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+}
+.header-body h1 {
+  font-size: clamp(28px, 4vw, 55px);
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  color: #fff;
+  margin-bottom: .5rem;
+}
+.header-body h1 strong {
+  font-weight: 700;
+  color: var(--light-blue);
+}
+.header-sub {
+  font-size: 14px; font-weight: 300;
+  color: rgba(255,255,255,.5);
+  line-height: 1.5;
+}
+.proto-pill {
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 3px; padding: .4rem .9rem;
+  font-size: 11px; font-weight: 500;
+  letter-spacing: .04em;
+  color: rgba(255,255,255,.4);
+  white-space: nowrap; align-self: flex-start;
+}
+
+.accent-bar {
+  height: 4px;
+  background: linear-gradient(90deg,
+    var(--leaf-green) 0%,
+    var(--wk-blue) 55%,
+    var(--light-blue) 100%);
+}
+
+/* ── STATS ── */
+.stats-bar {
+  background: var(--white);
+  border-bottom: 1px solid var(--rule);
+  box-shadow: 0 1px 4px rgba(0,58,93,.06);
+}
+.stats-inner {
+  max-width: 1160px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(4,1fr);
+}
+.stat {
+  padding: 1.4rem 1rem;
+  border-right: 1px solid var(--rule);
+  text-align: center;
+}
+.stat:last-child { border-right: none; }
+.stat-n {
+  font-size: 37px; font-weight: 300;
+  letter-spacing: -1px; line-height: 42px;
+  color: var(--dark-blue); margin-bottom: .2rem;
+}
+.stat-l {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text-light);
+}
+
+/* ── LAYOUT ── */
+.content { max-width: 1160px; margin: 0 auto; padding: 2.5rem 2rem; }
+.section { margin-bottom: 3rem; }
+
+.sec-head { margin-bottom: 1.5rem; }
+.sec-label {
+  display: block; font-size: 11px; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--wk-blue); margin-bottom: .4rem;
+}
+.sec-label::before {
+  content: '';
+  display: inline-block; width: 14px; height: 2px;
+  background: var(--leaf-green);
+  vertical-align: middle; margin-right: .4rem; margin-bottom: 1px;
+}
+.sec-title {
+  font-size: 37px; font-weight: 300;
+  letter-spacing: -1px; line-height: 42px;
+  color: var(--dark-blue); margin-bottom: .45rem;
+}
+.sec-desc {
+  font-size: 14px; font-weight: 300;
+  color: var(--text-mid); line-height: 1.7;
+  max-width: 700px;
+}
+
+/* ── PARAM CARDS ── */
+.param-grid {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 1rem;
+}
+.param-card {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: 4px; padding: 1.4rem;
+  position: relative; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,58,93,.05);
+}
+.param-card::after {
+  content: ''; position: absolute;
+  bottom: 0; left: 0; right: 0; height: 3px;
+}
+.p-good::after    { background: var(--leaf-green); }
+.p-caution::after { background: var(--sunset-orange); }
+.p-alert::after   { background: var(--alert-red); }
+
+.p-name {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text-light); margin-bottom: .65rem;
+}
+.p-pct {
+  font-size: 55px; font-weight: 300;
+  letter-spacing: -1.5px; line-height: 60px;
+  margin-bottom: .15rem;
+}
+.p-good   .p-pct { color: var(--leaf-green); }
+.p-caution .p-pct { color: var(--sunset-orange); }
+.p-alert  .p-pct { color: var(--alert-red); }
+
+.p-label { font-size: 13px; font-weight: 400; color: var(--text-mid); margin-bottom: .9rem; }
+.bar-bg { height: 4px; background: #eef2f5; border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 2px; }
+.p-good   .bar-fill { background: var(--leaf-green); }
+.p-caution .bar-fill { background: var(--sunset-orange); }
+.p-alert  .bar-fill { background: var(--alert-red); }
+.p-std {
+  font-size: 11px; font-weight: 400;
+  color: var(--text-light); margin-top: .6rem;
+  line-height: 1.5; font-style: italic;
+}
+
+/* ── CALLOUT ── */
+.callout {
+  background: #fff8f4;
+  border: 1px solid rgba(243,115,33,.22);
+  border-left: 4px solid var(--sunset-orange);
+  border-radius: 0 4px 4px 0;
+  padding: 1.25rem 1.5rem;
+  display: flex; gap: 1rem; align-items: flex-start;
+}
+.callout-icon { font-size: 1.2rem; flex-shrink: 0; padding-top: .1rem; }
+.callout-title {
+  font-size: 14px; font-weight: 600;
+  color: #7a2e00; margin-bottom: .35rem;
+}
+.callout-text {
+  font-size: 14px; font-weight: 400;
+  color: var(--text-mid); line-height: 1.7;
+}
+.callout-text strong { color: var(--text); font-weight: 600; }
+
+/* ── CHARTS ── */
+.chart-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+.chart-card {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: 4px; padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,58,93,.05);
+}
+.chart-card h3 {
+  font-size: 20px; font-weight: 400;
+  letter-spacing: -.5px; line-height: 26px;
+  color: var(--dark-blue); margin-bottom: .25rem;
+}
+.chart-sub {
+  font-size: 12px; font-weight: 400;
+  color: var(--text-light); line-height: 1.6;
+  margin-bottom: 1.1rem;
+}
+.chart-wrap { position: relative; height: 235px; }
+
+/* ── TABLE ── */
+.table-wrap {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: 4px; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,58,93,.05);
+}
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left;
+  padding: .75rem 1rem;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .09em;
+  color: var(--text-light);
+  background: var(--off-white);
+  border-bottom: 1px solid var(--rule);
+}
+td {
+  padding: .8rem 1rem;
+  font-size: 14px; font-weight: 400;
+  border-bottom: 1px solid #f0f4f7;
+  vertical-align: middle; line-height: 1.45;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f5f9fd; }
+.wb-name { font-weight: 600; color: var(--dark-blue); font-size: 14px; }
+.cls-tag {
+  display: inline-block; padding: .15rem .5rem;
+  background: #eef2f7; border-radius: 2px;
+  font-size: 11px; font-weight: 500; color: var(--text-mid);
+}
+.grade {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-size: 12px; font-weight: 700;
+}
+.gB { background: var(--wk-blue); color: #fff; }
+.gC { background: var(--sunset-orange); color: #fff; }
+.gD { background: var(--alert-red); color: #fff; }
+
+.tag {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 500;
+  padding: .22rem .6rem; border-radius: 100px;
+  letter-spacing: .03em;
+}
+.t-stable    { background: #eef2f5; color: var(--text-mid); border: 1px solid #d5e0e8; }
+.t-improving { background: #f0f7e6; color: #4a7020; border: 1px solid #b5d47a; }
+.t-concern   { background: #fff4ec; color: #7a2e00; border: 1px solid #f5c49a; }
+
+/* ── TIMELINE ── */
+.timeline-wrap {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 1.75rem 1.75rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,58,93,.05);
+}
+.tl-inner { position: relative; padding-left: 2rem; }
+.tl-inner::before {
+  content: '';
+  position: absolute; left: .38rem; top: .45rem; bottom: .45rem;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--dark-blue), var(--light-blue));
+}
+.tl-item { position: relative; margin-bottom: 1.75rem; }
+.tl-item:last-child { margin-bottom: 0; }
+.tl-item::before {
+  content: ''; position: absolute;
+  left: -1.66rem; top: .28rem;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--dark-blue);
+  border: 2px solid var(--white);
+  box-shadow: 0 0 0 2px var(--dark-blue);
+}
+.tl-year {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .13em; text-transform: uppercase;
+  color: var(--wk-blue); margin-bottom: .3rem;
+}
+.tl-text {
+  font-size: 14px; font-weight: 400;
+  color: var(--text-mid); line-height: 1.7;
+}
+.tl-text strong { color: var(--text); font-weight: 600; }
+.tl-tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .6rem; }
+.tl-tag {
+  font-size: 11px; font-weight: 500;
+  padding: .18rem .55rem; border-radius: 2px;
+  background: #eef4fb; color: var(--dark-blue);
+  border: 1px solid #c5d8eb;
+}
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--rule);
+  background: var(--white);
+  padding: 1.25rem 2rem;
+}
+.foot-inner {
+  max-width: 1160px; margin: 0 auto;
+  display: flex; justify-content: space-between;
+  align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+.foot-note {
+  font-size: 12px; font-weight: 400;
+  color: var(--text-light); line-height: 1.6;
+}
+.foot-link {
+  font-size: 13px; font-weight: 500;
+  color: var(--wk-blue); text-decoration: none;
+}
+.foot-link:hover { text-decoration: underline; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .stats-inner { grid-template-columns: repeat(2,1fr); }
+  .param-grid  { grid-template-columns: repeat(2,1fr); }
+  .chart-row   { grid-template-columns: 1fr; }
+}
+@media (max-width: 580px) {
+  .param-grid  { grid-template-columns: 1fr; }
+  .content     { padding: 1.75rem 1.25rem; }
+  .header-body { padding: 1.75rem 1.25rem; }
+  td, th       { padding: .65rem .75rem; }
+  .sec-title   { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-top">
+    <span class="org-name">Buffalo Niagara Waterkeeper</span>
+  </div>
+  <div class="header-body">
+    <div>
+      <h1><strong>Riverwatch</strong> Water Quality Dashboard</h1>
+      <p class="header-sub">14 years of volunteer citizen science in the Niagara River / Lake Erie Watershed &nbsp;·&nbsp; 2011–2025</p>
+    </div>
+    <div class="proto-pill">Prototype &nbsp;·&nbsp; Data from 2011, 2018 &amp; 2025 Annual Reports</div>
+  </div>
+</header>
+<div class="accent-bar"></div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat">
+      <div class="stat-n">14</div>
+      <div class="stat-l">Years of Data</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">95+</div>
+      <div class="stat-l">Monitoring Sites</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">8+</div>
+      <div class="stat-l">Active Programs</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">10K+</div>
+      <div class="stat-l">Volunteer Samples</div>
+    </div>
+  </div>
+</div>
+
+<main class="content">
+
+  <!-- 2025 SNAPSHOT -->
+  <div class="section">
+    <div class="sec-head">
+      <span class="sec-label">2025 Results at a Glance</span>
+      <div class="sec-title">Baseline Water Chemistry Snapshot</div>
+      <p class="sec-desc">Samples collected May–October 2025 at 58 sites by trained Riverwatch volunteers. Results compared to NYS DEC water quality standards. Conductivity uses a freshwater guideline range (150–500 µS/cm).</p>
+    </div>
+    <div class="param-grid">
+      <div class="param-card p-good">
+        <div class="p-name">Dissolved Oxygen</div>
+        <div class="p-pct">100%</div>
+        <div class="p-label">of samples in range</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:100%"></div></div>
+        <div class="p-std">Standard: ≥ 6.0 mg/L (Niagara River) / ≥ 4.0 mg/L (all other streams)</div>
+      </div>
+      <div class="param-card p-good">
+        <div class="p-name">pH</div>
+        <div class="p-pct">96%</div>
+        <div class="p-label">of samples in range</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:96%"></div></div>
+        <div class="p-std">Standard: 6.5 – 8.5</div>
+      </div>
+      <div class="param-card p-caution">
+        <div class="p-name">Turbidity</div>
+        <div class="p-pct">90%</div>
+        <div class="p-label">below 25 NTU threshold</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:90%"></div></div>
+        <div class="p-std">* 25 NTU used for visualization only; state standard is narrative-based</div>
+      </div>
+      <div class="param-card p-alert">
+        <div class="p-name">Conductivity</div>
+        <div class="p-pct">34%</div>
+        <div class="p-label">of samples in range</div>
+        <div class="bar-bg"><div class="bar-fill" style="width:34%"></div></div>
+        <div class="p-std">66% of all 2025 samples exceeded the 500 µS/cm freshwater guideline</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALLOUT -->
+  <div class="section" style="margin-top:-1.5rem">
+    <div class="callout">
+      <div class="callout-icon">⚠</div>
+      <div>
+        <div class="callout-title">Key Finding: Conductivity Exceedances Have Spread Watershed-Wide</div>
+        <p class="callout-text">In 2011, elevated conductivity was concentrated at heavily urbanized sites — Ellicott Creek (<strong>83%</strong> out of range) and Scajaquada Creek (<strong>80%</strong>). By 2025, <strong>66% of all samples across the entire watershed</strong> exceeded the guideline. This dramatic shift likely reflects the cumulative impact of road salt and suburban development spreading beyond city cores. The new chloride monitoring program (launched 2024) is now tracking this directly — with Rush Creek and Scajaquada Creek confirmed as hotspots.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="section">
+    <div class="sec-head">
+      <span class="sec-label">Trend Analysis</span>
+      <div class="sec-title">2011 vs. 2025: What's Changed</div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card">
+        <h3>Conductivity: From Hotspots to Watershed-Wide</h3>
+        <p class="chart-sub">% of samples exceeding 500 µS/cm — 2011 site-level figures vs. the 2025 watershed-wide average. What was once an urban problem has spread significantly.</p>
+        <div class="chart-wrap"><canvas id="condChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Parameter Comparison: 2011 vs. 2025</h3>
+        <p class="chart-sub">% of samples out of range per parameter. Turbidity improved dramatically; conductivity worsened significantly. (* 2011 conductivity estimated from site averages.)</p>
+        <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="section">
+    <div class="sec-head">
+      <span class="sec-label">Consistently Monitored Waterbodies</span>
+      <div class="sec-title">Site Comparison Across Reports</div>
+      <p class="sec-desc">Key waterbodies appearing across multiple Riverwatch reports. 2018 WQI grades: A = 90–100 · B = 80–89 · C = 70–79 · D = 60–69. <em>No sites received an A grade in 2018.</em></p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Waterbody</th>
+            <th>Stream Class</th>
+            <th>2018 WQI</th>
+            <th>Key Concerns</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="wb-name">Niagara River</td>
+            <td><span class="cls-tag">A Special</span></td>
+            <td><span class="grade gB">B</span></td>
+            <td>PCBs, dioxin, toxic sediment, CSOs; Great Lakes AOC</td>
+            <td><span class="tag t-stable">◉ Stable</span></td>
+          </tr>
+          <tr>
+            <td class="wb-name">Ellicott Creek</td>
+            <td><span class="cls-tag">B / C</span></td>
+            <td><span class="grade gC">C</span></td>
+            <td>Phosphorus, pathogens; persistent Euglena blooms through 2025</td>
+            <td><span class="tag t-concern">↑ Watch</span></td>
+          </tr>
+          <tr>
+            <td class="wb-name">Scajaquada Creek</td>
+            <td><span class="cls-tag">B / C / B</span></td>
+            <td><span class="grade gD">D</span></td>
+            <td>DO, pathogens, CSOs; conductivity &amp; chloride hotspot</td>
+            <td><span class="tag t-concern">↑ Concern</span></td>
+          </tr>
+          <tr>
+            <td class="wb-name">Gill Creek &amp; Hyde Park Lake</td>
+            <td><span class="cls-tag">C / B</span></td>
+            <td><span class="grade gC">C</span></td>
+            <td>HABs confirmed repeatedly since 2017; phosphorus in Hyde Park Lake</td>
+            <td><span class="tag t-concern">↑ Concern</span></td>
+          </tr>
+          <tr>
+            <td class="wb-name">Buffalo River</td>
+            <td><span class="cls-tag">C</span></td>
+            <td><span class="grade gC">C</span></td>
+            <td>Great Lakes AOC; PCBs; turbidity 100% exceeded standard in 2011</td>
+            <td><span class="tag t-stable">◉ Monitoring</span></td>
+          </tr>
+          <tr>
+            <td class="wb-name">Tonawanda Creek (Lower)</td>
+            <td><span class="cls-tag">C</span></td>
+            <td><span class="grade gB">B</span></td>
+            <td>Toxic sediment, PCBs; relatively stronger WQI than most streams</td>
+            <td><span class="tag t-improving">↓ Improving</span></td>
+          </tr>
+          <tr>
+            <td class="wb-name">Cayuga Creek (Niagara Co.)</td>
+            <td><span class="cls-tag">C</span></td>
+            <td><span class="grade gD">D</span></td>
+            <td>Dioxin impairment; conductivity 72% out of range in 2011</td>
+            <td><span class="tag t-concern">↑ Concern</span></td>
+          </tr>
+          <tr>
+            <td class="wb-name">Rush Creek</td>
+            <td><span class="cls-tag">C</span></td>
+            <td><span class="grade gD">D</span></td>
+            <td>Lowest WQI scores in 2018 (60.3); chloride hotspot confirmed March 2025</td>
+            <td><span class="tag t-concern">↑ Concern</span></td>
+          </tr>
+          <tr>
+            <td class="wb-name">Eighteenmile Creek</td>
+            <td><span class="cls-tag">B(T) / A</span></td>
+            <td><span class="grade gB">B</span></td>
+            <td>Streambank erosion, agricultural runoff; trout-bearing designation</td>
+            <td><span class="tag t-stable">◉ Stable</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="section">
+    <div class="sec-head">
+      <span class="sec-label">Program Evolution</span>
+      <div class="sec-title">Riverwatch Through the Years</div>
+      <p class="sec-desc">From a baseline volunteer water chemistry program to a multi-parameter, watershed-wide citizen science network tracking emerging contaminants.</p>
+    </div>
+    <div class="timeline-wrap">
+      <div class="tl-inner">
+        <div class="tl-item">
+          <div class="tl-year">2011</div>
+          <div class="tl-text"><strong>Program launches.</strong> 28 sites · 882 individual samples · 296 volunteer hours. Core focus on 5 baseline chemistry parameters. Staff test E. coli at 3 sites.</div>
+          <div class="tl-tags">
+            <span class="tl-tag">DO</span><span class="tl-tag">pH</span>
+            <span class="tl-tag">Conductivity</span><span class="tl-tag">Turbidity</span>
+            <span class="tl-tag">Temperature</span><span class="tl-tag">E. coli (3 sites)</span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2014</div>
+          <div class="tl-text"><strong>YELP program launched.</strong> Buffalo public school students join active water quality sampling, expanding E. coli monitoring throughout the city and integrating results with the Swim Guide platform.</div>
+          <div class="tl-tags">
+            <span class="tl-tag">YELP</span><span class="tl-tag">E. coli Expansion</span>
+            <span class="tl-tag">Swim Guide Integration</span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2018</div>
+          <div class="tl-text"><strong>WQI scoring introduced; ~95 sites monitored.</strong> Water Quality Index grades (A–F) applied to all sites. TDS added as a parameter. <strong>Microplastics pilot</strong> launched with Labatt USA — first plastic pellet tracking in the watershed.</div>
+          <div class="tl-tags">
+            <span class="tl-tag">~95 Sites</span><span class="tl-tag">WQI Scoring</span>
+            <span class="tl-tag">TDS Added</span><span class="tl-tag">Microplastics Pilot</span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2020</div>
+          <div class="tl-text"><strong>Nurdle Patrol begins</strong> after a large concentration of plastic pellets is discovered at Gratwick Park, North Tonawanda. Over 10,000 nurdles collected in 2025 alone.</div>
+          <div class="tl-tags">
+            <span class="tl-tag">Nurdle Patrol</span>
+            <span class="tl-tag">Plastic Pollution Monitoring</span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2022</div>
+          <div class="tl-text"><strong>PFAS surface water testing launched.</strong> "Forever chemical" sampling begins at 22 waterways in direct response to emerging public health concerns.</div>
+          <div class="tl-tags">
+            <span class="tl-tag">PFAS (22 Sites)</span>
+            <span class="tl-tag">Emerging Contaminants</span>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-year">2024–2025</div>
+          <div class="tl-text"><strong>Chloride monitoring added.</strong> Road salt impacts tracked at 5 waterways across pre-winter, peak-winter, and spring seasons. By 2025: <strong>58 baseline sites + 31 bacteria sites + PFAS + chloride + nurdle patrol</strong> all operating simultaneously.</div>
+          <div class="tl-tags">
+            <span class="tl-tag">Chloride (5 Sites)</span><span class="tl-tag">58 Baseline Sites</span>
+            <span class="tl-tag">31 Bacteria Sites</span><span class="tl-tag">8+ Programs Active</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="foot-inner">
+    <p class="foot-note"><strong>Data sources:</strong> BNW Riverwatch Annual Reports 2011, 2018 &amp; 2025. Prototype — some values estimated from report narratives. 2011 conductivity (~33%) averaged across 8 sampled sites. Turbidity uses 25 NTU for 2025 comparison (not the NYS standard).</p>
+    <a class="foot-link" href="https://bnwaterkeeper.org/our-impact/water-quality/" target="_blank">bnwaterkeeper.org/our-impact/water-quality →</a>
+  </div>
+</footer>
+
+<script>
+Chart.defaults.color = '#7a95a6';
+Chart.defaults.font.family = "'Montserrat', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.font.weight = '500';
+
+// Conductivity chart
+new Chart(document.getElementById('condChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: ['Ellicott Cr.\n(2011)', 'Scajaquada Cr.\n(2011)', 'Cayuga Cr.\n(2011)', 'Tonawanda L.\n(2011)', 'Tonawanda M.\n(2011)', 'Watershed\nOverall (2025)'],
+    datasets: [{
+      label: '% out of range',
+      data: [83, 80, 72, 17, 13, 66],
+      backgroundColor: ['rgba(0,91,170,.45)','rgba(0,91,170,.45)','rgba(0,91,170,.45)','rgba(0,91,170,.45)','rgba(0,91,170,.45)','rgba(192,57,43,.7)'],
+      borderColor:     ['#005baa','#005baa','#005baa','#005baa','#005baa','#c0392b'],
+      borderWidth: 1.5, borderRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y}% out of range` } }
+    },
+    scales: {
+      x: { ticks: { maxRotation: 0, color: '#7a95a6', font: { size: 10 } }, grid: { color: 'rgba(0,58,93,.06)' } },
+      y: { min: 0, max: 100, ticks: { color: '#7a95a6', callback: v => v + '%' }, grid: { color: 'rgba(0,58,93,.06)' } }
+    }
+  }
+});
+
+// Trend chart
+new Chart(document.getElementById('trendChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: ['Dissolved\nOxygen', 'pH', 'Conductivity', 'Turbidity'],
+    datasets: [
+      { label: '2011', data: [5, 2, 33, 87], backgroundColor: 'rgba(0,58,93,.7)', borderColor: '#003a5d', borderWidth: 1.5, borderRadius: 3 },
+      { label: '2025', data: [0, 4, 66, 10], backgroundColor: 'rgba(117,154,53,.75)', borderColor: '#759a35', borderWidth: 1.5, borderRadius: 3 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#7a95a6', padding: 14, font: { size: 11 } } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}% out of range` } }
+    },
+    scales: {
+      x: { ticks: { maxRotation: 0, color: '#7a95a6', font: { size: 10 } }, grid: { color: 'rgba(0,58,93,.06)' } },
+      y: { min: 0, max: 100, ticks: { color: '#7a95a6', callback: v => v + '%' }, grid: { color: 'rgba(0,58,93,.06)' } }
+    }
+  }
+});
+</script>
+</body>
+</html>
